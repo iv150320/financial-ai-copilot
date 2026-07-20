@@ -5,6 +5,7 @@ for financial analysis use-cases.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 SYSTEM_PROMPT_TEMPLATE = """You are an expert financial analyst AI assistant.
@@ -46,6 +47,7 @@ class PromptPipeline:
         self,
         query: str,
         context: dict[str, Any] | None = None,
+        current_date: str | None = None,
     ) -> dict[str, str]:
         """
         Build a complete prompt pair (system + user) for an analysis query.
@@ -56,6 +58,8 @@ class PromptPipeline:
             The user's natural-language analysis request.
         context : dict or None
             Optional context (company, filters, period, etc.).
+        current_date : str, optional
+            Date string in ISO format. If None, uses today's date.
 
         Returns
         -------
@@ -69,8 +73,10 @@ class PromptPipeline:
             filter_items = [f"- **{k}**: {v}" for k, v in ctx.items()]
             filters_str = "**Context / Filters:**\n" + "\n".join(filter_items)
 
+        effective_date = current_date or date.today().isoformat()
+
         system = SYSTEM_PROMPT_TEMPLATE.format(
-            current_date="2026-07-20",
+            current_date=effective_date,
             user_context=ctx.get("_description", "General financial analysis"),
             knowledge_cutoff=self._knowledge_cutoff,
         )
@@ -83,14 +89,16 @@ class PromptPipeline:
         self,
         messages: list[dict[str, str]],
         context: dict[str, Any] | None = None,
+        current_date: str | None = None,
     ) -> list[dict[str, str]]:
         """
         Build a full message list for conversational chat.
         Prepends the system prompt and injects context.
         """
         ctx = context or {}
+        effective_date = current_date or date.today().isoformat()
         system = SYSTEM_PROMPT_TEMPLATE.format(
-            current_date="2026-07-20",
+            current_date=effective_date,
             user_context=ctx.get("_description", "Conversational financial analysis"),
             knowledge_cutoff=self._knowledge_cutoff,
         )

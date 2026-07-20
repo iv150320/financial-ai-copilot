@@ -97,4 +97,4 @@ class FinancialAnalysisService:
         return {
             "reply": reply,
             "usage": metadata.get("tokens_used", {}),
-        }}
+        }
