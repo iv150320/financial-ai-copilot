@@ -2,7 +2,9 @@
 Nvidia NIM API Client — async HTTP client for LLM inference via
 Nvidia's NIM microservice endpoints.
 
-Integrates with ``integrate.api.nvidia.com`` or a self-hosted NIM.
+When ``NIM_GATEWAY_URL`` is configured, all requests are routed through
+the Universal NVIDIA NIM Gateway for unified tracing, auth, and rate limiting.
+Otherwise, the client falls back to direct NVIDIA NIM API.
 """
 
 from __future__ import annotations
@@ -20,15 +22,41 @@ settings = get_settings()
 
 
 class NIMClient:
-    """Async client for the Nvidia NIM API."""
+    """Async client for the Nvidia NIM API (via Gateway or direct)."""
+
+    # Service identifier sent to the NIM Gateway for observability
+    SERVICE_NAME = "financial-ai-copilot"
 
     def __init__(self) -> None:
-        self._base_url = settings.NIM_API_BASE_URL
+        # Prefer gateway URL; fall back to direct NIM API
+        self._base_url = (settings.NIM_GATEWAY_URL or settings.NIM_API_BASE_URL).rstrip("/")
+        self._using_gateway = bool(settings.NIM_GATEWAY_URL)
         self._api_key = settings.NIM_API_KEY
         self._model = settings.NIM_MODEL
         self._default_max_tokens = settings.NIM_MAX_TOKENS
         self._default_temperature = settings.NIM_TEMPERATURE
         self._timeout = 60.0
+
+    def _build_headers(self) -> dict[str, str]:
+        """Build request headers.
+
+        When routing through the NIM Gateway, the gateway handles
+        authentication; the downstream service identifies itself via
+        ``X-Service-Name`` so the gateway can tag spans and metrics.
+        """
+        headers: dict[str, str] = {
+            "Content-Type": "application/json",
+        }
+
+        if self._using_gateway:
+            headers["X-Service-Name"] = self.SERVICE_NAME
+            # Only send API key if gateway requires it
+            if self._api_key:
+                headers["Authorization"] = f"Bearer {self._api_key}"
+        else:
+            headers["Authorization"] = f"Bearer {self._api_key}"
+
+        return headers
 
     async def chat_completion(
         self,
@@ -39,7 +67,7 @@ class NIMClient:
         stream: bool = False,
     ) -> dict[str, Any]:
         """
-        Send a chat completion request to the NIM endpoint.
+        Send a chat completion request to the NIM endpoint (via Gateway if configured).
 
         Parameters
         ----------
@@ -61,10 +89,7 @@ class NIMClient:
         dict
             The full NIM API response.
         """
-        headers = {
-            "Authorization": f"Bearer {self._api_key}",
-            "Content-Type": "application/json",
-        }
+        headers = self._build_headers()
 
         payload: dict[str, Any] = {
             "model": model or self._model,
@@ -76,15 +101,16 @@ class NIMClient:
 
         async with httpx.AsyncClient(timeout=self._timeout) as client:
             logger.debug(
-                "NIM request: model=%s, messages=%d tokens",
+                "NIM request via=%s model=%s messages=%d tokens",
+                "gateway" if self._using_gateway else "direct",
                 payload["model"],
                 sum(len(m.get("content", "")) for m in messages),
             )
 
             # ── Stub / Mock path ────────────────────────────────────────
             # Remove this when NIM_API_KEY is set and the endpoint is live.
-            if not self._api_key:
-                logger.warning("NIM_API_KEY not set — using mock response.")
+            if not self._using_gateway and not self._api_key:
+                logger.warning("NIM_API_KEY not set and no Gateway — using mock response.")
                 return self._mock_response(messages)
 
             try:

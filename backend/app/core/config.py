@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     NIM_MAX_TOKENS: int = 4096
     NIM_TEMPERATURE: float = 0.1
 
+    # ── NIM Gateway (cross-service) ──────────────────────────────────────────
+    NIM_GATEWAY_URL: str = "http://nvidia-nim-gateway:8000"
+
     # ── External APIs ────────────────────────────────────────────────────
     MARKET_DATA_API_URL: str = "https://api.example.com/v1"
     MARKET_DATA_API_KEY: str = ""

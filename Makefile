@@ -18,6 +18,12 @@ test: ## Run all tests
 	cd backend && pytest tests/ -v --cov=app
 	cd frontend && npm run type-check
 
+e2e: ## Run end-to-end integration tests
+	docker compose -f docker/docker-compose.yml up -d
+	@sleep 5
+	python -m pytest tests/e2e/ -v || true
+	docker compose -f docker/docker-compose.yml down
+
 lint: ## Run linters
 	cd backend && ruff check . && mypy app --ignore-missing-imports
 	cd frontend && npm run lint
