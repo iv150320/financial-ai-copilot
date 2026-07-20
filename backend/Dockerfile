@@ -4,8 +4,7 @@ FROM python:3.12-slim AS builder
 WORKDIR /build
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir --user --upgrade pip && \
-    pip install --no-cache-dir --user -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # ── Runtime Stage ─────────────────────────────────────────────────────────
 FROM python:3.12-slim
@@ -16,9 +15,9 @@ WORKDIR /app
 RUN groupadd -g 1000 appuser && \
     useradd -u 1000 -g appuser -s /bin/bash -m appuser
 
-# Copy Python dependencies from builder
-COPY --from=builder /root/.local /root/.local
-ENV PATH=/root/.local/bin:$PATH
+# Copy Python dependencies from builder (world-readable prefix)
+COPY --from=builder /install /usr/local
+ENV PATH=/usr/local/bin:$PATH
 
 # Copy application code
 COPY . .
