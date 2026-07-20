@@ -87,15 +87,14 @@ class FinancialAnalysisService:
     async def chat(
         self,
         messages: list[dict[str, str]],
+        context: dict[str, Any] | None = None,
         stream: bool = False,
     ) -> dict[str, Any]:
         """Send a chat message to the AI copilot."""
         # For streaming, this would be an async generator;
         # here we provide the non-streaming fallback.
-        result = await self._ai._nim.chat_completion(messages)
+        reply, metadata = await self._ai.chat(messages, context)
         return {
-            "reply": result.get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", ""),
-            "usage": result.get("usage", {}),
-        }
+            "reply": reply,
+            "usage": metadata.get("tokens_used", {}),
+        }}
