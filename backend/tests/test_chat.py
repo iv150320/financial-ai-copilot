@@ -1,9 +1,38 @@
-"""Tests for the chat copilot endpoint."""
+"""Tests for the chat copilot endpoint with mocked NIM client."""
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
 from httpx import AsyncClient
+
+
+@pytest.fixture(autouse=True)
+def mock_nim_client():
+    """Patch NIMClient.chat_completion to prevent real HTTP calls."""
+    patcher = patch(
+        "app.infrastructure.nvidia_nim.client.NIMClient.chat_completion",
+        new_callable=AsyncMock,
+    )
+    mock = patcher.start()
+    mock.return_value = {
+        "id": "chat-test",
+        "object": "chat.completion",
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": "Apple's P/E ratio is approximately 28.5x.",
+                },
+                "finish_reason": "stop",
+            }
+        ],
+        "usage": {"prompt_tokens": 50, "completion_tokens": 15, "total_tokens": 65},
+    }
+    yield mock
+    patcher.stop()
 
 
 @pytest.mark.asyncio

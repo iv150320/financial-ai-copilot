@@ -8,6 +8,7 @@ from collections.abc import AsyncGenerator
 from typing import Any
 
 import pytest
+import pytest_asyncio
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
@@ -20,7 +21,7 @@ def app() -> FastAPI:
     return _app
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def async_client(app: FastAPI) -> AsyncGenerator[AsyncClient, None]:
     """Create an async HTTP test client against the app without a server."""
     transport = ASGITransport(app=app)  # type: ignore[arg-type]

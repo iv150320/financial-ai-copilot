@@ -68,3 +68,9 @@ async def get_market_data_client() -> MarketDataClient:
 async def get_nim_client() -> NIMClient:
     """Provide an Nvidia NIM client instance."""
     return NIMClient()
+
+
+async def get_financial_service() -> "FinancialAnalysisService":
+    """Provide a FinancialAnalysisService instance."""
+    from app.services.financial_service import FinancialAnalysisService
+    return FinancialAnalysisService()
