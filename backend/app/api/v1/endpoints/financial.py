@@ -4,6 +4,8 @@ Financial analysis endpoints — market data queries and report generation.
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.models.pydantic_models import (
@@ -18,13 +20,15 @@ from app.models.pydantic_models import (
 )
 from app.services.financial_service import FinancialAnalysisService
 
+from app.core.dependencies import get_financial_service
+
 router = APIRouter(prefix="/financial", tags=["financial"])
 
 
 @router.post("/analyze", response_model=AnalysisResponse, status_code=status.HTTP_202_ACCEPTED)
 async def analyze(
     request: AnalysisRequest,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> AnalysisResponse:
     """
     Submit a natural-language analysis query.
@@ -44,7 +48,7 @@ async def analyze(
 @router.get("/analyze/{request_id}", response_model=AnalysisResult)
 async def get_analysis_result(
     request_id: str,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> AnalysisResult:
     """Retrieve the result of a previously submitted analysis (stub)."""
     raise HTTPException(
@@ -56,7 +60,7 @@ async def get_analysis_result(
 @router.post("/market-data", response_model=MarketDataResponse)
 async def get_market_data(
     request: MarketDataRequest,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> MarketDataResponse:
     """
     Fetch live market data for the requested symbols.
@@ -86,7 +90,7 @@ async def get_market_data(
 @router.post("/reports", response_model=ReportResponse, status_code=status.HTTP_202_ACCEPTED)
 async def generate_report(
     request: ReportRequest,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> ReportResponse:
     """
     Generate a financial report via the AI copilot.

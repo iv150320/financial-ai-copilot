@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import StreamingResponse
@@ -16,6 +16,8 @@ from pydantic import ValidationError
 
 from app.models.pydantic_models import ChatRequest, ChatResponse
 from app.services.financial_service import FinancialAnalysisService
+
+from app.core.dependencies import get_financial_service
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 @router.post("", response_model=ChatResponse)
 async def chat(
     request: ChatRequest,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> ChatResponse:
     """
     Send a chat message to the AI copilot.
@@ -50,7 +52,7 @@ async def chat(
 @router.post("/stream")
 async def chat_stream(
     request: ChatRequest,
-    service: FinancialAnalysisService = Depends(),
+    service: Annotated[FinancialAnalysisService, Depends(get_financial_service)],
 ) -> StreamingResponse:
     """
     Streaming chat endpoint using Server-Sent Events (SSE).
